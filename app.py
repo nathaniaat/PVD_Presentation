@@ -56,8 +56,8 @@ def plot_price_vs_distance(df):
 
     fig, ax = plt.subplots(figsize=(8, 4.5))
     sns.scatterplot(data=plot_df, x='Distance', y='Price', hue='Type',
-                     hue_order=['House', 'Unit', 'Townhouse'],
-                     palette='Set2', alpha=0.5, ax=ax)
+                    hue_order=['House', 'Unit', 'Townhouse'],
+                    palette='Set2', alpha=0.5, ax=ax)
     ax.set_yscale('log')
     ax.set_title('Price vs Distance to CBD (Central Business District)')
     ax.set_xlabel('Distance to CBD (km)')
