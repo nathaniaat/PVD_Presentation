@@ -4,7 +4,6 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-
 def load_data():
     df = pd.read_csv("melb_clean.csv")
     type_mapping = {
@@ -17,10 +16,14 @@ def load_data():
         }
     
     df['Type_Full'] = df['Type'].map(type_mapping).fillna(df['Type'])
-    return df
+    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
+    df['Year'] = df['Date'].dt.year
+    df['Month'] = df['Date'].dt.month
+    df['YearMonth'] = df['Date'].dt.to_period('M').dt.to_timestamp()
     
+    return df
 
-
+# PUNYA THANIA
 def plot_median_price_vs_rooms(df):
     median_df = df.groupby('Rooms')['Price'].median().reset_index()
 
@@ -46,7 +49,6 @@ def plot_median_price_vs_rooms(df):
 
     st.dataframe(median_df)
 
-
 def plot_price_vs_distance(df):
     type_labels = {'h': 'House', 'u': 'Unit', 't': 'Townhouse'}
     plot_df = df.copy()
@@ -67,6 +69,7 @@ def plot_price_vs_distance(df):
     corr = df['Price'].corr(df['Distance'])
     med_type = df.groupby('Type')['Price'].median()
 
+# PUNYA GAB
 def top10_agents(df):
     top_agents = df['SellerG'].value_counts().head(10).reset_index()
     top_agents.columns = ['Agent Name', 'Properties Sold']
@@ -127,16 +130,58 @@ def anomaly_insights(df):
     * **Lokasi Properti:** {outlier_1['Address']}, {outlier_1['Suburb']}
     * **Spesifikasi:** Tipe **'{outlier_1['Type_Full']}'** dengan {int(outlier_1['Rooms'])} kamar tidur.
     * **Jarak ke CBD:** **{outlier_1['Distance']} km**.
-    * **Fakta Anomali:** Properti ini memuncak di harga **AUD {outlier_1['Price']:,.0f}**. Ini merupakan nilai tertinggi dalam dataset yang melenceng jauh dari rata-rata harga pasar wajar.
+    * **Fakta Anomali:** Properti ini memuncak di harga **AUD {outlier_1['Price']:,.0f}**. Ini merupakan nilai tertinggi dalam dataset dan menonjol sebagai *outlier* yang signifikan.
 
     **2. Anomali "Suburban Mansion" (Pinggiran Kota Berharga Tinggi)**
     * **Lokasi Properti:** {outlier_2['Address']}, {outlier_2['Suburb']}
     * **Spesifikasi:** Tipe **'{outlier_2['Type_Full']}'** dengan {int(outlier_2['Rooms'])} kamar tidur.
     * **Jarak ke CBD:** **{outlier_2['Distance']} km**.
-    * **Fakta Anomali:** Meskipun letaknya sangat jauh dari pusat bisnis (>30 km), properti ini menembus harga fantastis sebesar **AUD {outlier_2['Price']:,.0f}**. Ini merupakan ketidakwajaran, mengingat area radius sejauh ini umumnya didominasi oleh perumahan harga terjangkau.
+    * **Fakta Anomali:** Meskipun letaknya sangat jauh dari pusat bisnis (>30 km), properti ini menembus harga fantastis sebesar **AUD {outlier_2['Price']:,.0f}**. 
     """)
 
+# PUNYA ELIZ
+def plot_heatmap_volume(df):
+    st.write('#### 1. Transaction Volume Heatmap')
+    heatmap_data = pd.crosstab(df['Year'], df['Month'])
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.heatmap(heatmap_data, cmap='Blues', annot=True, fmt="d", linewidths=.5, ax=ax)
+    ax.set_title("Sales Concentration (Month vs Year)")
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Year")
+    st.pyplot(fig)
+
+def plot_trend_region(df):
+    st.write('#### 2. Median Price Trend by Region')
+    top_regions = df['Regionname'].value_counts().head(3).index
+    df_top = df[df['Regionname'].isin(top_regions)]
+    trend_region = df_top.groupby(['YearMonth', 'Regionname'])['Price'].median().reset_index()
+    
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.lineplot(data=trend_region, x='YearMonth', y='Price', hue='Regionname', palette='Set2', linewidth=2, ax=ax)
+    ax.set_title("Price Comparison of Top 3 Regions")
+    ax.set_ylabel("Median Price (AUD)")
+    ax.set_xlabel("Time (Year-Month)")
+    ax.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig)
+
+def plot_date_vs_price(df):
+    st.write('#### 3. Price Distribution Over Time')
+    fig, ax = plt.subplots(figsize=(10, 5))
+    threshold = df['Price'].quantile(0.99)
+    colors_accent = ['#e74c3c' if p > threshold else '#bdc3c7' for p in df['Price']] 
+    
+    ax.scatter(df['Date'], df['Price'], c=colors_accent, alpha=0.6, edgecolor='none')
+    ax.set_yscale('log')
+    ax.set_title("Property Price Distribution (Top 1% Highlighted)")
+    ax.set_ylabel("Price (AUD, Log Scale)")
+    ax.set_xlabel("Transaction Date")
+    ax.grid(True, linestyle='--', alpha=0.4)
+    st.pyplot(fig)
+
+
+
 def main():
+    st.set_page_config(layout="wide") 
     st.title('Melbourne Housing Data Analytics')
     df = load_data()
 
@@ -144,7 +189,7 @@ def main():
     st.dataframe(df.head())
 
     st.write('---')
-    st.write('## Visualization 01')
+    st.write('## Visualization: NATHANIA')
 
     st.write('#### 1. Median Price by Rooms')
     plot_median_price_vs_rooms(df)
@@ -152,14 +197,26 @@ def main():
     st.write('#### 2. Price vs Distance to CBD')
     plot_price_vs_distance(df)
 
-    st.write('## Visualization 04')
+    st.write('---')
+    st.write('## Visualization: ELIZABETH')
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        plot_heatmap_volume(df)
+    with col2:
+        plot_trend_region(df)
+        
+    plot_date_vs_price(df)
+
+    st.write('---')
+    st.write('## Visualization: GABRIELLE')
     st.write('#### Market Business Players & Pricing Anomalies')
     st.write("#### 1. Bar Chart: Top 10 Property Agents by Properties Sold")
     top10_agents(df)
     st.write("#### 2. Scatter Chart: Distance vs Price (Seaborn)")
     scatter_chart_distance_vs_price(df)
     anomaly_insights(df)
-
+    
 
 if __name__ == '__main__':
     main()
