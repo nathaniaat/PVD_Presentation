@@ -205,10 +205,10 @@ def top10_agents(df):
 
     for i, p in enumerate(ax_bar.patches):
         ax_bar.annotate(
-            f"{int(p.get_width()):,}",  # Teks yang ditampilkan (diformat dengan koma ribuan)
-            (p.get_width() + 15, p.get_y() + p.get_height() / 2.), # Koordinat posisi teks (X, Y)
-            va='center', # Membuat teks sejajar di tengah batang secara vertikal
-            fontsize=10  # Ukuran teks
+            f"{int(p.get_width()):,}",  
+            (p.get_width() + 15, p.get_y() + p.get_height() / 2.),
+            va='center',
+            fontsize=10  
         )   
 
     ax_bar.set_title("Top 10 Agents by Volume")
