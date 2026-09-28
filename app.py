@@ -191,11 +191,26 @@ def plot_price_vs_distance(df):
 def top10_agents(df):
     top_agents = df['SellerG'].value_counts().head(10).reset_index()
     top_agents.columns = ['Agent Name', 'Properties Sold']
+    agent_sales = df['SellerG'].value_counts()
+    total_agents = len(agent_sales) 
+    st.markdown(f"""
+    *Ringkasan Pasar Ekosistem Agen:* 
+    Terdapat total *{total_agents} agen properti terdaftar* di dalam dataset.  
+    Analisis di bawah ini difokuskan secara spesifik pada *Top 10 Agen Raksasa* yang memegang kendali utama di pasar Melbourne.
+    """)
 
     fig_bar, ax_bar = plt.subplots(figsize=(6, 4.2))
         
     sns.barplot(data=top_agents, x='Properties Sold', y='Agent Name', palette='viridis', ax=ax_bar)
-        
+
+    for i, p in enumerate(ax_bar.patches):
+        ax_bar.annotate(
+            f"{int(p.get_width()):,}",  # Teks yang ditampilkan (diformat dengan koma ribuan)
+            (p.get_width() + 15, p.get_y() + p.get_height() / 2.), # Koordinat posisi teks (X, Y)
+            va='center', # Membuat teks sejajar di tengah batang secara vertikal
+            fontsize=10  # Ukuran teks
+        )   
+
     ax_bar.set_title("Top 10 Agents by Volume")
     ax_bar.set_xlabel("Total Properties Sold")
     ax_bar.set_ylabel("")
