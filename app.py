@@ -220,57 +220,81 @@ def top10_agents(df):
     st.pyplot(fig_bar)
 
 def scatter_chart_distance_vs_price(df):
-    anomalies = df[df['Price'] >= 5000000] 
-    normal_sample = df[df['Price'] < 5000000].sample(2000, random_state=42)
-    df_scatter = pd.concat([normal_sample, anomalies])
+    
+    st.write("Mencari titik pencilan (outliers) menggunakan skala linear untuk menemukan anomali harga yang ekstrem.")
 
-    fig_scat, ax_scat = plt.subplots(figsize=(10, 5))
-    
-    sns.scatterplot(
-        data=df_scatter, 
-        x='Distance', 
-        y='Price', 
-        hue='Type_Full', 
-        alpha=0.7, 
-        palette='deep',
-        ax=ax_scat
-    )
-    
-    ax_scat.set_title("Correlation: Distance from CBD vs Price")
-    ax_scat.set_xlabel("Distance to CBD (km)")
-    ax_scat.set_ylabel("Price (AUD)")
-    ax_scat.grid(True, linestyle="--", alpha=0.5)
-    
-
-    st.pyplot(fig_scat)
-    
-    
-def anomaly_insights(df):
-    """Fungsi untuk menampilkan teks penjelasan anomali secara dinamis (berdasarkan kalkulasi data)."""
-    st.subheader("Outliers")
-    
-    # 1. Mencari Properti Termahal (Harga > 5 juta AUD)
     max_price_idx = df['Price'].idxmax()
     outlier_1 = df.loc[max_price_idx]
     
     df_far = df[df['Distance'] > 30]
-    outlier_2 = df_far.loc[df_far['Price'].idxmax()]
+    outlier_2 = df_far.loc[df_far['Price'].idxmax()] if not df_far.empty else None
+
+    extreme_price = df[df['Price'] >= 5000000] 
+    suburban_mansion = df[(df['Distance'] > 30) & (df['Price'] >= 1500000)]
     
-    st.markdown(f"""
-    Berdasarkan pemrosesan data, sistem secara otomatis mendeteksi titik-titik anomali (*outliers*) utama pada visualisasi *scatter plot* di atas:
+   
+    normal_sample = df[(df['Price'] < 5000000) & ~((df['Distance'] > 30) & (df['Price'] >= 1500000))].sample(2000, random_state=42)
+   
+    df_scatter = pd.concat([normal_sample, extreme_price, suburban_mansion])
 
-    **1. Anomali Harga Ekstrem (The Ultimate Outlier)**
-    * **Lokasi Properti:** {outlier_1['Address']}, {outlier_1['Suburb']}
-    * **Spesifikasi:** Tipe **'{outlier_1['Type_Full']}'** dengan {int(outlier_1['Rooms'])} kamar tidur.
-    * **Jarak ke CBD:** **{outlier_1['Distance']} km**.
-    * **Fakta Anomali:** Properti ini memuncak di harga **AUD {outlier_1['Price']:,.0f}**. Ini merupakan nilai tertinggi dalam dataset dan menonjol sebagai *outlier* yang signifikan.
+    fig_scat, ax_scat = plt.subplots(figsize=(12, 6))
+    sns.scatterplot(
+        data=df_scatter, x='Distance', y='Price', 
+        hue='Type_Full', alpha=0.7, palette='deep', ax=ax_scat, s=60
+    )
+    
+   
+    ax_scat.annotate(
+        "Ultimate Outlier", 
+        xy=(outlier_1['Distance'], outlier_1['Price']),
+        xytext=(outlier_1['Distance'] + 2, outlier_1['Price'] - 1000000), 
+        arrowprops=dict(facecolor='red', shrink=0.05, width=2, headwidth=8),
+        fontsize=10, color='red', fontweight='bold'
+    )
+    
+  
+    if outlier_2 is not None:
+        ax_scat.annotate(
+            "Suburban Mansion", 
+            xy=(outlier_2['Distance'], outlier_2['Price']), 
+            xytext=(outlier_2['Distance'] - 12, outlier_2['Price'] + 1500000), 
+            arrowprops=dict(facecolor='red', shrink=0.05, width=2, headwidth=8),
+            fontsize=10, color='red', fontweight='bold'
+        )
+    
 
-    **2. Anomali "Suburban Mansion" (Pinggiran Kota Berharga Tinggi)**
-    * **Lokasi Properti:** {outlier_2['Address']}, {outlier_2['Suburb']}
-    * **Spesifikasi:** Tipe **'{outlier_2['Type_Full']}'** dengan {int(outlier_2['Rooms'])} kamar tidur.
-    * **Jarak ke CBD:** **{outlier_2['Distance']} km**.
-    * **Fakta Anomali:** Meskipun letaknya sangat jauh dari pusat bisnis (>30 km), properti ini menembus harga fantastis sebesar **AUD {outlier_2['Price']:,.0f}**. 
-    """)
+    ax_scat.set_title("Korelasi: Jarak dari Pusat Kota (CBD) vs Harga Properti", fontsize=14, pad=15)
+    ax_scat.set_xlabel("Jarak ke CBD (km)", fontsize=11)
+    ax_scat.set_ylabel("Harga (AUD)", fontsize=11)
+    ax_scat.grid(True, linestyle="--", alpha=0.5)
+    
+
+    sns.move_legend(ax_scat, "upper right", title="Tipe Properti")
+    
+    plt.tight_layout()
+    st.pyplot(fig_scat)
+
+    st.subheader("Sorotan Anomali Pasar (Outliers)")
+    
+    if outlier_2 is not None:
+        st.markdown(f"""
+        Sistem secara otomatis mendeteksi titik-titik anomali utama (ditandai panah merah) dari data mentah:
+
+        *1. Anomali Harga Ekstrem (The Ultimate Outlier)*
+        * *Lokasi:* {outlier_1['Address']}, {outlier_1['Suburb']}
+        * *Spesifikasi:* Tipe *{outlier_1['Type_Full']}* | {int(outlier_1['Rooms'])} Kamar Tidur.
+        * *Jarak ke CBD:* *{outlier_1['Distance']} km*.
+        * *Fakta:* Properti ini memuncak di harga *AUD {outlier_1['Price']:,.0f}*. Nilai tertinggi ini sangat jauh dari rata-rata harga pasar di jarak tersebut.
+
+        *2. Anomali "Suburban Mansion" (Properti Pinggiran Harga Tinggi)*
+        * *Lokasi:* {outlier_2['Address']}, {outlier_2['Suburb']}
+        * *Spesifikasi:* Tipe *{outlier_2['Type_Full']}* | {int(outlier_2['Rooms'])} Kamar Tidur.
+        * *Jarak ke CBD:* *{outlier_2['Distance']} km*.
+        * *Fakta:* Meskipun terletak sangat jauh dari pusat bisnis (>30 km), properti ini menembus angka fantastis sebesar *AUD {outlier_2['Price']:,.0f}*.
+        """)
+    
+    
+
 
 # PUNYA ELIZ
 def plot_heatmap_volume(df):
@@ -364,7 +388,7 @@ def main():
     top10_agents(df)
     st.write("#### 2. Scatter Chart: Distance vs Price (Seaborn)")
     scatter_chart_distance_vs_price(df)
-    anomaly_insights(df)
+
     
 
 if __name__ == '__main__':
